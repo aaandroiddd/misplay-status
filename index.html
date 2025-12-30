@@ -449,13 +449,17 @@
       9: { label: 'Down', class: 'outage' }
     };
 
+    const LOG_TYPE_MAP = {
+      1: 'Down',
+      2: 'Up',
+      98: 'Started',
+      99: 'Paused'
+    };
+
     // Default services if no API key configured
     const DEFAULT_SERVICES = [
       { name: 'Website', status: 2, uptime: 100 },
-      { name: 'API', status: 2, uptime: 100 },
-      { name: 'Marketplace', status: 2, uptime: 100 },
-      { name: 'Messaging', status: 2, uptime: 100 },
-      { name: 'Payments', status: 2, uptime: 100 }
+      { name: 'Marketplace', status: 2, uptime: 100 }
     ];
 
     function updateLastUpdated() {
@@ -526,11 +530,60 @@
       document.getElementById('overall-status').textContent = overall.label;
     }
 
+    function formatIncidentDate(timestamp) {
+      const date = new Date(timestamp * 1000);
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    }
+
+    function formatDuration(seconds) {
+      if (seconds < 60) return `${seconds}s`;
+      if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+      const hours = Math.floor(seconds / 3600);
+      const mins = Math.floor((seconds % 3600) / 60);
+      return `${hours}h ${mins}m`;
+    }
+
+    function renderIncidents(incidents) {
+      const container = document.getElementById('incidents-list');
+
+      if (!incidents || incidents.length === 0) {
+        container.innerHTML = '<p class="no-incidents">No incidents reported in the last 30 days.</p>';
+        return;
+      }
+
+      container.innerHTML = incidents.map(incident => {
+        const isResolved = incident.type === 2; // Type 2 = Up (resolved)
+        const statusClass = isResolved ? 'resolved' : 'investigating';
+        const statusText = isResolved ? 'Resolved' : 'Ongoing';
+
+        return `
+          <div class="incident">
+            <div class="incident-header">
+              <div>
+                <h3 class="incident-title">${incident.monitorName} - ${incident.reason || 'Service Disruption'}</h3>
+                <span class="incident-date">${formatIncidentDate(incident.datetime)}</span>
+              </div>
+              <span class="incident-status ${statusClass}">${statusText}</span>
+            </div>
+            <p class="incident-body">
+              ${incident.duration ? `Duration: ${formatDuration(incident.duration)}` : 'Currently investigating...'}
+            </p>
+          </div>
+        `;
+      }).join('');
+    }
+
     async function fetchUptimeRobotStatus() {
       if (!UPTIMEROBOT_API_KEY || Object.keys(MONITORS).length === 0) {
         // Show setup notice and use defaults
         document.getElementById('setup-notice').classList.remove('hidden');
-        return DEFAULT_SERVICES;
+        return { services: DEFAULT_SERVICES, incidents: [] };
       }
 
       try {
@@ -543,6 +596,9 @@
             api_key: UPTIMEROBOT_API_KEY,
             format: 'json',
             custom_uptime_ratios: '30',
+            logs: 1,
+            log_types: '1-2',  // 1 = down, 2 = up
+            logs_limit: 20,
             monitors: Object.keys(MONITORS).join('-')
           })
         });
@@ -551,28 +607,53 @@
 
         if (data.stat !== 'ok') {
           console.error('UptimeRobot API error:', data);
-          return DEFAULT_SERVICES;
+          return { services: DEFAULT_SERVICES, incidents: [] };
         }
 
-        return data.monitors.map(monitor => ({
+        const services = data.monitors.map(monitor => ({
           name: MONITORS[monitor.id] || monitor.friendly_name,
           status: monitor.status,
           uptime: parseFloat(monitor.custom_uptime_ratio) || 100
         }));
+
+        // Extract incidents (down events) from logs
+        const incidents = [];
+        data.monitors.forEach(monitor => {
+          if (monitor.logs) {
+            monitor.logs.forEach(log => {
+              // Only show down events (type 1) - we'll pair them with their resolution
+              if (log.type === 1) {
+                incidents.push({
+                  monitorName: MONITORS[monitor.id] || monitor.friendly_name,
+                  type: log.type,
+                  datetime: log.datetime,
+                  duration: log.duration,
+                  reason: log.reason?.detail || 'Service unavailable'
+                });
+              }
+            });
+          }
+        });
+
+        // Sort by date, most recent first
+        incidents.sort((a, b) => b.datetime - a.datetime);
+
+        return { services, incidents: incidents.slice(0, 10) };
       } catch (error) {
         console.error('Failed to fetch status:', error);
-        return DEFAULT_SERVICES;
+        return { services: DEFAULT_SERVICES, incidents: [] };
       }
     }
 
     async function init() {
       updateLastUpdated();
 
-      const services = await fetchUptimeRobotStatus();
+      const { services, incidents } = await fetchUptimeRobotStatus();
 
       renderServices(services);
       renderUptime(services);
       renderOverallStatus(services);
+      renderIncidents(incidents);
       updateLastUpdated();
     }
 
