@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>misplay.gg Status</title>
+  <meta name="description" content="Real-time status and incident updates for misplay.gg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --bg-card: #111113;
+      --border: #27272a;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --accent: #38bdf8;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+    }
+
+    /* Header */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 0;
+    }
+
+    header .container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo span {
+      color: var(--accent);
+    }
+
+    header nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    header nav a:hover {
+      color: var(--text);
+    }
+
+    /* Main */
+    main {
+      padding: 3rem 0;
+    }
+
+    /* Status Banner */
+    .status-banner {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.operational { background: var(--green); }
+    .status-dot.degraded { background: var(--yellow); }
+    .status-dot.outage { background: var(--red); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .status-banner p {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Services */
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .services {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 3rem;
+    }
+
+    .service {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .service:last-child {
+      border-bottom: none;
+    }
+
+    .service-name {
+      font-weight: 500;
+    }
+
+    .service-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .service-status .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .service-status .dot.operational { background: var(--green); }
+    .service-status .dot.degraded { background: var(--yellow); }
+    .service-status .dot.outage { background: var(--red); }
+
+    /* Incidents */
+    .incidents {
+      margin-bottom: 3rem;
+    }
+
+    .incident {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .incident-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.75rem;
+    }
+
+    .incident-title {
+      font-weight: 600;
+    }
+
+    .incident-date {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .incident-status {
+      font-size: 0.75rem;
+      font-weight: 500;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+    }
+
+    .incident-status.resolved {
+      background: rgba(34, 197, 94, 0.1);
+      color: var(--green);
+    }
+
+    .incident-status.investigating {
+      background: rgba(234, 179, 8, 0.1);
+      color: var(--yellow);
+    }
+
+    .incident-body {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+    }
+
+    .no-incidents {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+
+    /* Uptime bars */
+    .uptime-section {
+      margin-bottom: 3rem;
+    }
+
+    .uptime-service {
+      margin-bottom: 1.5rem;
+    }
+
+    .uptime-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .uptime-label {
+      font-weight: 500;
+    }
+
+    .uptime-percent {
+      color: var(--green);
+      font-weight: 600;
+    }
+
+    .uptime-bars {
+      display: flex;
+      gap: 2px;
+      height: 32px;
+    }
+
+    .uptime-bar {
+      flex: 1;
+      border-radius: 2px;
+      background: var(--green);
+      transition: background 0.2s;
+    }
+
+    .uptime-bar.degraded { background: var(--yellow); }
+    .uptime-bar.outage { background: var(--red); }
+    .uptime-bar:hover { opacity: 0.8; }
+
+    .uptime-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <a href="https://misplay.gg" class="logo">misplay<span>.gg</span></a>
+      <nav>
+        <a href="https://misplay.gg">Back to misplay.gg</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Status Banner -->
+    <div class="status-banner">
+      <div class="status-indicator">
+        <span class="status-dot operational"></span>
+        All Systems Operational
+      </div>
+      <p>Last updated: <span id="last-updated">December 29, 2025 at 10:00 PM PST</span></p>
+    </div>
+
+    <!-- Services Status -->
+    <section>
+      <h2 class="section-title">Services</h2>
+      <div class="services">
+        <div class="service">
+          <span class="service-name">Website</span>
+          <span class="service-status">
+            <span class="dot operational"></span>
+            Operational
+          </span>
+        </div>
+        <div class="service">
+          <span class="service-name">API</span>
+          <span class="service-status">
+            <span class="dot operational"></span>
+            Operational
+          </span>
+        </div>
+        <div class="service">
+          <span class="service-name">Marketplace</span>
+          <span class="service-status">
+            <span class="dot operational"></span>
+            Operational
+          </span>
+        </div>
+        <div class="service">
+          <span class="service-name">Messaging</span>
+          <span class="service-status">
+            <span class="dot operational"></span>
+            Operational
+          </span>
+        </div>
+        <div class="service">
+          <span class="service-name">Payments</span>
+          <span class="service-status">
+            <span class="dot operational"></span>
+            Operational
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 90-day Uptime -->
+    <section class="uptime-section">
+      <h2 class="section-title">90-Day Uptime</h2>
+
+      <div class="uptime-service">
+        <div class="uptime-header">
+          <span class="uptime-label">Website</span>
+          <span class="uptime-percent">100.0%</span>
+        </div>
+        <div class="uptime-bars">
+          <!-- 90 bars for 90 days -->
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+          <div class="uptime-bar"></div><div class="uptime-bar"></div><div class="uptime-bar"></div>
+        </div>
+        <div class="uptime-legend">
+          <span>90 days ago</span>
+          <span>Today</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent Incidents -->
+    <section class="incidents">
+      <h2 class="section-title">Recent Incidents</h2>
+
+      <p class="no-incidents">No incidents reported in the last 90 days.</p>
+
+      <!-- Example incident (commented out)
+      <div class="incident">
+        <div class="incident-header">
+          <div>
+            <h3 class="incident-title">API Latency Issues</h3>
+            <span class="incident-date">December 15, 2025</span>
+          </div>
+          <span class="incident-status resolved">Resolved</span>
+        </div>
+        <p class="incident-body">
+          We experienced elevated API response times affecting some marketplace operations.
+          The issue was identified and resolved within 30 minutes.
+        </p>
+      </div>
+      -->
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <p>&copy; 2025 misplay.gg &middot; <a href="https://misplay.gg">Main Site</a> &middot; <a href="https://twitter.com/misplaygg">Twitter</a></p>
+    </div>
+  </footer>
+
+  <script>
+    // Update the last updated time
+    function updateTime() {
+      const now = new Date();
+      const options = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      };
+      document.getElementById('last-updated').textContent = now.toLocaleDateString('en-US', options);
+    }
+    updateTime();
+  </script>
+</body>
+</html>
