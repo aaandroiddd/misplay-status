@@ -437,6 +437,14 @@
       '802069213': 'Marketplace',
     };
 
+    // Third-party services to monitor
+    const THIRD_PARTY_SERVICES = {
+      getstream: {
+        name: 'Messaging (GetStream)',
+        statusUrl: 'https://status.getstream.io/api/v2/status.json'
+      }
+    };
+
     // ============================================
     // STATUS PAGE LOGIC - Don't edit below
     // ============================================
@@ -579,6 +587,48 @@
       }).join('');
     }
 
+    async function fetchThirdPartyStatus() {
+      const results = [];
+
+      for (const [key, service] of Object.entries(THIRD_PARTY_SERVICES)) {
+        try {
+          const response = await fetch(service.statusUrl);
+          const data = await response.json();
+
+          // Map Statuspage.io indicator to our status codes
+          let status = 2; // Default: operational
+          if (data.status) {
+            switch (data.status.indicator) {
+              case 'none': status = 2; break;      // Operational
+              case 'minor': status = 0; break;     // Degraded
+              case 'major': status = 8; break;     // Down
+              case 'critical': status = 9; break;  // Down
+              default: status = 2;
+            }
+          }
+
+          results.push({
+            name: service.name,
+            status: status,
+            uptime: 100, // Third-party doesn't provide uptime %
+            isThirdParty: true,
+            description: data.status?.description || 'Operational'
+          });
+        } catch (error) {
+          console.error(`Failed to fetch ${service.name} status:`, error);
+          results.push({
+            name: service.name,
+            status: 1, // Unknown
+            uptime: 100,
+            isThirdParty: true,
+            description: 'Unable to fetch status'
+          });
+        }
+      }
+
+      return results;
+    }
+
     async function fetchUptimeRobotStatus() {
       if (!UPTIMEROBOT_API_KEY || Object.keys(MONITORS).length === 0) {
         // Show setup notice and use defaults
@@ -648,12 +698,19 @@
     async function init() {
       updateLastUpdated();
 
-      const { services, incidents } = await fetchUptimeRobotStatus();
+      // Fetch both UptimeRobot and third-party statuses in parallel
+      const [uptimeData, thirdPartyServices] = await Promise.all([
+        fetchUptimeRobotStatus(),
+        fetchThirdPartyStatus()
+      ]);
 
-      renderServices(services);
-      renderUptime(services);
-      renderOverallStatus(services);
-      renderIncidents(incidents);
+      // Combine all services
+      const allServices = [...uptimeData.services, ...thirdPartyServices];
+
+      renderServices(allServices);
+      renderUptime(uptimeData.services); // Only show uptime for our services
+      renderOverallStatus(allServices);
+      renderIncidents(uptimeData.incidents);
       updateLastUpdated();
     }
 
